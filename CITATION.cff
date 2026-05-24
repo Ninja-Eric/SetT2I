@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: "Scaling Exposes the Trigger: Input-Level Backdoor Detection in Text-to-Image Diffusion Models via Cross-Attention Scaling"
+message: "If you use this code, please cite the associated arXiv paper."
+type: software
+authors:
+  - family-names: Li
+    given-names: Zida
+  - family-names: Li
+    given-names: Jun
+  - family-names: Sha
+    given-names: Yuzhe
+  - family-names: Li
+    given-names: Ziqiang
+  - family-names: Xiong
+    given-names: Lizhi
+  - family-names: Fu
+    given-names: Zhangjie
+year: 2026
+identifiers:
+  - type: doi
+    value: 10.48550/arXiv.2604.12446
+  - type: other
+    value: arXiv:2604.12446
+license: Apache-2.0

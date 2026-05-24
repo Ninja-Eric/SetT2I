@@ -1,0 +1,153 @@
+# SET: Input-Level Backdoor Detection in Text-to-Image Diffusion Models
+
+Official implementation for **Scaling Exposes the Trigger: Input-Level Backdoor Detection in Text-to-Image Diffusion Models via Cross-Attention Scaling**.
+
+SET detects backdoored text prompts for text-to-image diffusion models from an active probing perspective. It applies controlled cross-attention scaling perturbations, observes **Cross-Attention Scaling Response Divergence (CSRD)** across denoising steps, extracts response-offset features, and learns a compact benign response space for input-level backdoor detection.
+
+## News
+
+- 2026-04-14: Paper released on arXiv: [arXiv:2604.12446](https://arxiv.org/abs/2604.12446).
+
+## Method Overview
+
+SET contains three main stages:
+
+1. **Cross-attention scaling**: apply multi-scale perturbations to cross-attention during T2I denoising.
+2. **Response-offset feature extraction**: collect CSRD features from response evolution across layers and denoising steps.
+3. **Benign response space detection**: train an encoder detector on clean prompts and flag inputs that deviate from the learned benign response space.
+
+## Repository Structure
+
+```text
+SET/
+├── train.py          # Paper-aligned training pipeline: probe clean prompts, extract response-offset features, fit encoder detector
+├── detect.py         # Paper-aligned detection pipeline: probe inputs, score distance from benign response space
+├── ptp_utils.py      # Reusable attention scaling, feature extraction, model loading, detector, and P2P utilities
+├── requirements.txt  # Python dependencies
+├── README.md
+├── LICENSE
+└── CITATION.cff
+```
+
+Generated files are expected under local-only directories such as `data/`, `checkpoints/`, `models/`, and `outputs/`. These directories are ignored by Git.
+
+## Environment Setup
+
+```bash
+conda create -n set python=3.10
+conda activate set
+pip install -r requirements.txt
+```
+
+The code expects a CUDA-enabled PyTorch environment for practical experiments.
+
+## Data and Model Preparation
+
+Prepare the following resources locally:
+
+- A Stable Diffusion v1-4 base model.
+- Prompt files in plain text format, one prompt per line.
+- Backdoored model checkpoints for the attack setting being evaluated.
+
+Suggested layout:
+
+```text
+SET/
+├── data/
+│   ├── train_prompts.txt
+│   └── eval_prompts/
+│       ├── rickrolling.txt
+│       ├── twt.txt
+│       └── clean.txt
+├── checkpoints/
+│   └── <attack-checkpoints>
+├── models/
+└── outputs/
+```
+
+The built-in attack names include `rickrolling`, `twt`, `villan_mignneko`, `villan_github`, `villan_anonymous`, `eviledit`, `pixel`, `personal`, and `clean`. You can override all important paths from the command line.
+
+## Train SET Detector
+
+Example:
+
+```bash
+python train.py \
+  --attack_method rickrolling \
+  --base_model_path /path/to/stable-diffusion-v1-4 \
+  --prompt_file data/train_prompts.txt \
+  --backdoored_model_path checkpoints/rickrolling \
+  --detector_save_path models/set_detector_rickrolling.safetensors \
+  --output_dir outputs/train/rickrolling_seed42 \
+  --seed 42 \
+  --epochs 100 \
+  --batch_size 20 \
+  --gpu 0
+```
+
+Useful options:
+
+- `--attack_method`: attack/backdoor setting.
+- `--base_model_path`: clean T2I base model path.
+- `--prompt_file`: clean prompts used to train the benign response space.
+- `--backdoored_model_path`: backdoored model/checkpoint path.
+- `--detector_save_path`: output path for the trained SET detector.
+- `--resume`: resume interrupted response feature extraction.
+- `--encoder`: reuse existing response-offset features and train only the encoder detector.
+
+## Run Detection
+
+Example:
+
+```bash
+python detect.py \
+  --attack_method rickrolling \
+  --base_model_path /path/to/stable-diffusion-v1-4 \
+  --prompt_file data/eval_prompts/rickrolling.txt \
+  --backdoored_model_path checkpoints/rickrolling \
+  --detector_path models/set_detector_rickrolling.safetensors \
+  --output_dir outputs/detect/rickrolling_seed42 \
+  --seed 42 \
+  --batch_size 20 \
+  --gpu 0
+```
+
+The evaluation prompt file follows the original experiment convention: benign and backdoor prompts are organized in the same file for score comparison.
+
+## Outputs
+
+Training produces files such as:
+
+- `result.txt`: training summary and threshold information.
+- `*_fingerprints.npy`: response-offset features.
+- `detector.safetensors` or `models/set_detector_*.safetensors`: trained benign response space detector.
+- `training_encoder_histogram_overall.png`, `training_per_layer_mse.png`, `training_loss_curves.png`: diagnostic figures.
+
+Detection produces files such as:
+
+- `result.txt`: AUROC, threshold metrics, and accuracy summary.
+- `fingerprints_benign.npy` / `fingerprints_backdoor.npy`: extracted CSRD features.
+- `report_overall.png` and `report_per_layer_per_step.png`: detection reports.
+- `images/`: generated samples when image saving is enabled.
+
+## Citation
+
+If you find this repository useful, please cite:
+
+```bibtex
+@article{li2026scaling,
+  title={Scaling Exposes the Trigger: Input-Level Backdoor Detection in Text-to-Image Diffusion Models via Cross-Attention Scaling},
+  author={Li, Zida and Li, Jun and Sha, Yuzhe and Li, Ziqiang and Xiong, Lizhi and Fu, Zhangjie},
+  journal={arXiv preprint arXiv:2604.12446},
+  year={2026},
+  doi={10.48550/arXiv.2604.12446}
+}
+```
+
+## License
+
+This project is released under the Apache License 2.0.
+
+## Acknowledgements
+
+This code builds on the PyTorch, Hugging Face Diffusers, Transformers, and Stable Diffusion ecosystems. Parts of the attention-control utilities follow the Prompt-to-Prompt style implementation.
