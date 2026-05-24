@@ -10,8 +10,6 @@ SET detects backdoored text prompts for text-to-image diffusion models from an a
 
 ## Method Overview
 
-SET follows the paper pipeline:
-
 1. **Cross-attention scaling probe**: apply controlled multi-scale perturbations to cross-attention during T2I denoising.
 2. **Response-offset feature extraction**: capture response evolution across probe steps and construct CSRD-style response-offset features.
 3. **Benign response space fitting**: train an encoder detector on clean prompts to model compact benign response behavior.
@@ -139,11 +137,6 @@ Detection produces files such as:
 - `result.txt`: AUROC, threshold, accuracy, and per-sample distance summary.
 - `fingerprints_backdoor.npy` / `fingerprints_benign.npy`: extracted response-offset features.
 - `report_overall.png`: distance distribution, ROC curve, confusion matrix, and per-layer MSE summary.
-
-## Notes
-
-- The public entry points are intentionally single-device and paper-aligned. Multi-GPU orchestration, resume aggregation, and OOM-specific engineering paths are not part of the main release path.
-- Large data, checkpoints, generated features, and experiment outputs are excluded by `.gitignore`.
 
 ## Citation
 
