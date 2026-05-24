@@ -10,19 +10,20 @@ SET detects backdoored text prompts for text-to-image diffusion models from an a
 
 ## Method Overview
 
-SET contains three main stages:
+SET follows the paper pipeline:
 
-1. **Cross-attention scaling**: apply multi-scale perturbations to cross-attention during T2I denoising.
-2. **Response-offset feature extraction**: collect CSRD features from response evolution across layers and denoising steps.
-3. **Benign response space detection**: train an encoder detector on clean prompts and flag inputs that deviate from the learned benign response space.
+1. **Cross-attention scaling probe**: apply controlled multi-scale perturbations to cross-attention during T2I denoising.
+2. **Response-offset feature extraction**: capture response evolution across probe steps and construct CSRD-style response-offset features.
+3. **Benign response space fitting**: train an encoder detector on clean prompts to model compact benign response behavior.
+4. **Deviation-based detection**: score evaluation prompts by distance from the learned benign response space.
 
 ## Repository Structure
 
 ```text
 SET/
-├── train.py          # Paper-aligned training pipeline: probe clean prompts, extract response-offset features, fit encoder detector
-├── detect.py         # Paper-aligned detection pipeline: probe inputs, score distance from benign response space
-├── ptp_utils.py      # Reusable attention scaling, feature extraction, model loading, detector, and P2P utilities
+├── train.py          # Paper-aligned training pipeline
+├── detect.py         # Paper-aligned detection pipeline
+├── ptp_utils.py      # Attention scaling, feature extraction, model loading, detector, and P2P utilities
 ├── requirements.txt  # Python dependencies
 ├── README.md
 ├── LICENSE
@@ -65,9 +66,11 @@ SET/
 └── outputs/
 ```
 
-The built-in attack names include `rickrolling`, `twt`, `villan_mignneko`, `villan_github`, `villan_anonymous`, `eviledit`, `pixel`, `personal`, and `clean`. You can override all important paths from the command line.
+The built-in attack names include `rickrolling`, `twt`, `villan_mignneko`, `villan_github`, `villan_anonymous`, `eviledit`, `pixel`, `personal`, and `clean`. Important paths can be overridden from the command line.
 
 ## Train SET Detector
+
+`train.py` implements the training-side pipeline: load clean prompts, run cross-attention scaling probes, extract response-offset features, fit the encoder detector, and save the benign response space model.
 
 Example:
 
@@ -92,10 +95,14 @@ Useful options:
 - `--prompt_file`: clean prompts used to train the benign response space.
 - `--backdoored_model_path`: backdoored model/checkpoint path.
 - `--detector_save_path`: output path for the trained SET detector.
-- `--resume`: resume interrupted response feature extraction.
-- `--encoder`: reuse existing response-offset features and train only the encoder detector.
+- `--output_dir`: output directory for features, logs, and figures.
+- `--encoder`: reuse existing response-offset features in `--output_dir` and train only the encoder detector.
 
 ## Run Detection
+
+`detect.py` implements the detection-side pipeline: load evaluation prompts, extract response-offset features for backdoor and benign inputs, score distances from the benign response space, and save the detection report.
+
+The evaluation prompt file is expected to contain at least 1000 prompts: the first 500 are treated as backdoor prompts and the next 500 as benign prompts.
 
 Example:
 
@@ -112,23 +119,31 @@ python detect.py \
   --gpu 0
 ```
 
-The evaluation prompt file follows the original experiment convention: benign and backdoor prompts are organized in the same file for score comparison.
+Useful options:
+
+- `--detector_path`: trained detector path. If omitted, the attack config default is used.
+- `--encoder`: reuse `fingerprints_backdoor.npy` and `fingerprints_benign.npy` in `--output_dir` and only run scoring/reporting.
 
 ## Outputs
 
 Training produces files such as:
 
-- `result.txt`: training summary and threshold information.
-- `*_fingerprints.npy`: response-offset features.
-- `detector.safetensors` or `models/set_detector_*.safetensors`: trained benign response space detector.
-- `training_encoder_histogram_overall.png`, `training_per_layer_mse.png`, `training_loss_curves.png`: diagnostic figures.
+- `result.txt`: training summary and learned threshold information.
+- `<attack>_fingerprints.npy`: clean response-offset features.
+- `detector.safetensors` and `models/set_detector_<attack>.safetensors`: trained benign response space detector.
+- `training_encoder_histogram_overall.png` and `training_loss_curves.png`: diagnostic figures.
+- `layer_stages.json`: selected cross-attention layer stage metadata.
 
 Detection produces files such as:
 
-- `result.txt`: AUROC, threshold metrics, and accuracy summary.
-- `fingerprints_benign.npy` / `fingerprints_backdoor.npy`: extracted CSRD features.
-- `report_overall.png` and `report_per_layer_per_step.png`: detection reports.
-- `images/`: generated samples when image saving is enabled.
+- `result.txt`: AUROC, threshold, accuracy, and per-sample distance summary.
+- `fingerprints_backdoor.npy` / `fingerprints_benign.npy`: extracted response-offset features.
+- `report_overall.png`: distance distribution, ROC curve, confusion matrix, and per-layer MSE summary.
+
+## Notes
+
+- The public entry points are intentionally single-device and paper-aligned. Multi-GPU orchestration, resume aggregation, and OOM-specific engineering paths are not part of the main release path.
+- Large data, checkpoints, generated features, and experiment outputs are excluded by `.gitignore`.
 
 ## Citation
 
