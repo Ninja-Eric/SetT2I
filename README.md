@@ -19,16 +19,14 @@ SET detects backdoored text prompts for text-to-image diffusion models from an a
 
 ```text
 SET/
-├── train.py          # Paper-aligned training pipeline
-├── detect.py         # Paper-aligned detection pipeline
+├── train.py          # training pipeline
+├── detect.py         # detection pipeline
 ├── ptp_utils.py      # Attention scaling, feature extraction, model loading, detector, and P2P utilities
 ├── requirements.txt  # Python dependencies
 ├── README.md
 ├── LICENSE
 └── CITATION.cff
 ```
-
-Generated files are expected under local-only directories such as `data/`, `checkpoints/`, `models/`, and `outputs/`. These directories are ignored by Git.
 
 ## Environment Setup
 
@@ -64,7 +62,7 @@ SET/
 └── outputs/
 ```
 
-The built-in attack names include `rickrolling`, `twt`, `villan_mignneko`, `villan_github`, `villan_anonymous`, `eviledit`, `pixel`, `personal`, and `clean`. Important paths can be overridden from the command line.
+The built-in attack names include `rickrolling`, `twt`, `villan_mignneko`, `villan_github`, `villan_anonymous`, `eviledit`, `pixel`, and `clean`. Important paths can be overridden from the command line.
 
 ## Train SET Detector
 
