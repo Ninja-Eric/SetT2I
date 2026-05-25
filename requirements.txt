@@ -5,7 +5,3 @@ numpy
 matplotlib
 safetensors
 scikit-learn
-Pillow
-opencv-python
-ipython
-tqdm
